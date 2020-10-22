@@ -452,7 +452,7 @@ class App(QMainWindow, Ui_mainWindow):
         self.rt_manual.setText("1")
 
     def open_csv(self):
-        fname = QFileDialog.getOpenFileName(self, 'Open file', (self.path + '/pruebas/'), 'csv files(*.csv )')
+        fname = QFileDialog.getOpenFileName(self, 'Open file', (self.path + '\pruebas'), 'csv files(*.csv )')
         print(fname[0])
         if not fname == '':
             df = pd.read_csv(fname[0])
@@ -491,7 +491,7 @@ class App(QMainWindow, Ui_mainWindow):
         # Tome un pantallaso
         name, ok = QInputDialog.getText(self, "Nombre de prueba", "Ingrese nombre de prueba (MOTO_CLIENTE_ESTADO_DD_MM_AA)")
         if ok:
-             self.csv_name = self.path + '/pruebas/' + name + '_pasada_' + str(self.no_of_tests) + '.csv'
+             self.csv_name = self.path + "\pruebas" + "\\"  + name + '_pasada_' + str(self.no_of_tests) + '.csv'
         frame = {'RPM': self.plot_rpm, 'Hp': self.plot_hp_vs_rpm, 'Nm': self.plot_torque_vs_rpm, 'afr': self.plot_afr}
         a = pd.DataFrame(data=frame)
         a.to_csv(self.csv_name, index=False)
@@ -629,6 +629,12 @@ class DAQ(QThread):
 
         elif platform == "win32":
             locations = ["COM1", 'COM2', 'COM3', 'COM4', 'COM5']
+            for port in list_ports.comports():
+                print(port.description)
+                if 'USB Serial Port' in port.description:
+                    
+                    self.PIC = Serial(port.device, 115200, timeout=1)
+                    # self.PIC = Serial("COM7", 115200, timeout=2)
             """
             for com in range(10):
                 try:
@@ -640,7 +646,8 @@ class DAQ(QThread):
                 except:
                     print("Failed to connect on", port)
             """
-            self.PIC = Serial("COM7", 115200, timeout=2)
+            # self.PIC = Serial("COM5", 115200, timeout=2)
+            
 
     def __del__(self):  # part of the standard format of a QThread
         # self.wait()
