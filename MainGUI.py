@@ -1,4 +1,5 @@
-
+# https://datatofish.com/executable-pyinstaller/
+# Desplegar en windows
 """
 [Desktop Entry]
 Name=Dyna
