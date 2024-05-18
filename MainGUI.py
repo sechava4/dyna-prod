@@ -38,6 +38,13 @@ class App(QMainWindow, Ui_mainWindow):
 
         # Set up the user interface from Designer
         self.setupUi(self)
+        '''
+        for port in list_ports.comports():
+            if 'FT232R USB UART' in port:
+                self.PIC = Serial(port.device, 115200, timeout=1)
+            elif 'CP2102 USB to UART Bridge Controller' in port:
+                self.spark = Serial(port.device, 115200, timeout=1)
+        '''
 
         # Se crea un evento para cada vez que termine el while en DAQ.animate ( el evento llega gracias al emit)
         # Se crea una instancia del objeto que crea eventos (DAQ)
@@ -55,6 +62,10 @@ class App(QMainWindow, Ui_mainWindow):
         self.elapsedTime = np.array([0, 0, 0, 0, 0, 0, 0])
         self.rpm = np.array([0, 0, 0, 0, 0, 0, 0])
         self.plot_rpm = np.array([0, 0])
+
+        # promedios
+        self.torque_prom4000 = np.array([])
+        self.pot_prom4000 = np.array([])
 
         self.afr = np.array([0, 0, 0, 0, 0, 0, 0])  #
         self.plot_afr = np.array([0, 0])  #
@@ -89,15 +100,20 @@ class App(QMainWindow, Ui_mainWindow):
         self.delta_t = 200  # current_time - self.old_time  # en segundos
         self.stop_count = 0
         self.initime = 0
+        self.stop_count = 0
+
+        # promedios
+        self.mean_torque = 0
+        self.mean_pot = 0
 
         # Leds
-        self.path = os.path.dirname(os.path.abspath(__file__))
+        self.path = "C:/Users/casa racing/Documents/dyna/Dyna-master\dist"
         print(self.path)
-        # led_off = self.path + "/img/led_off.png"
-        # led_on = self.path + "/img/led_on.png"
-        # self.led_off_img = (QPixmap(led_off)).scaled(30, 30)
-        # self.led_on_img = (QPixmap(led_on)).scaled(30, 30)
-        # self.led_label.setPixmap(self.led_off_img)
+        led_off = self.path + "/img/led_off.png"
+        led_on = self.path + "/img/led_on.png"
+        self.led_off_img = (QPixmap(led_off)).scaled(30, 30)
+        self.led_on_img = (QPixmap(led_on)).scaled(30, 30)
+        self.StopLabel.setPixmap(self.led_off_img)
 
         # Variables de estados
         self.state = False
@@ -110,6 +126,7 @@ class App(QMainWindow, Ui_mainWindow):
         # plot de class pg  --- plot settings
 
         self.plot = pg.PlotWidget()
+        # self.plot.setXRange(13,)                                                               # trying
         self.wideband_plot = pg.PlotWidget()
         self.wideband_plot.setFixedHeight(180)
 
@@ -229,21 +246,24 @@ class App(QMainWindow, Ui_mainWindow):
 
         # Gauge Settings
         self.Gauge.set_MaxValue(250)
-        self.Gaugerpm.set_MaxValue(12000)
+        self.Gaugerpm.set_MaxValue(13000)
 
     def updateViews(self):
         self.p2.setGeometry(self.p1.vb.sceneBoundingRect())
         self.p2.linkedViewChanged(self.p1.vb, self.p2.XAxis)
 
     def onDataChanged(self, pulsos, wideband):  #
+        # print(wideband)  #
         afr = 0.0116 * wideband + 7.31
         self.lcdAFR.display(afr)
         current_time = time.time()
-        rpm_rod = pulsos/2  # (pulsos / 0.1)  * (1/600) * (60)  = 1* pulsos
+        rpm_rod = pulsos * 0.3  # (n_pulsos / 0.2 sec)  * (1 rev / 1000 pulsos) * (60 sec / 1 min)  = 0.3 * pulsos
         hz_rod_temp = (rpm_rod * 2 * math.pi) / 60
+        # hz_rod_temp = rpm_rod * 0.0166
 
         if self.setting_flag:
             # Se calcula la relacion de reducción
+            #self.spark.flushInput()  #
             serialflag=0
             spark_per_rev=1
             for port in list_ports.comports():
@@ -290,24 +310,20 @@ class App(QMainWindow, Ui_mainWindow):
 
         rpm_moto = (hz_rod * 60 / (self.relacion_reduccion * 2 * math.pi))
         self.Gaugerpm.update_value(rpm_moto)
+        # self.rt_manual.setText(str(self.relacion_reduccion))
         kmh = (hz_rod * 0.54864)  # 0.1524)*3.6  # Multiplicando por el radio del rodillo en m
 
         self.Gauge.update_value(kmh)
+        # print("{:12.2f}".format(rpm_rod,"rpm"))
+        # rpm_rod = hz_rod * 60
 
-        if hz_rod_temp <= self.old_hz:
-            exit_var = True
-        else:
-            exit_var = False
-
-        if self.stop_count > 10:
-            self.state = False
-            self.first_iteration = True
+        exit_var = (hz_rod_temp < self.old_hz)
 
         # Si esta en modo run
         if self.state:
             # self.led_label.setPixmap(self.led_on_img)
 
-            #  En la primera iteracion reciba los valores parala siguiente
+            #  En la primera iteracion reciba los valores para la siguiente
             if self.first_iteration:
                 self.old_hz2 = self.old_hz
                 self.old_hz = hz_rod
@@ -350,10 +366,24 @@ class App(QMainWindow, Ui_mainWindow):
                 # Calculo de potencia
                 horse_power = (torque_rod * hz_rod) / 733.04  # Watt to hp
 
-                if not exit_var:
+                # Si el rodillo esta frenando
+                if exit_var:
+                    self.stop_count += 1
+                        
 
+                    # Si ha pasado varias iteraciones frenando
+                    if self.stop_count > 15:
+                        self.stop_count = 0
+                        self.state = False
+                        self.first_iteration = True
+                        
+                # Si esta aumentando aun de rpm    
+                else:
+
+                    self.stop_count = 0
                     # Se Sacan los valores máximos
                     if rpm_moto > self.max_rpm:
+                        
                         self.max_rpm = rpm_moto
 
                         self.rpm = np.append(self.rpm, rpm_moto)
@@ -382,22 +412,25 @@ class App(QMainWindow, Ui_mainWindow):
                         self.lcdMaxTorque.display(round(np.max(self.plot_torque_vs_rpm), 2))
                         self.lcdMaxHP.display(round(np.max(self.plot_hp_vs_rpm), 2))
 
-
-
-                    # Si el rodillo esta frenando
-                    else:
-                        self.stop_count += 1
-                        # print(self.stop_count)
-
-                        # Si ha pasado varias iteraciones frenando
-                        if self.stop_count > 10:
-                            self.state = False
-                            self.first_iteration = True
+                        # Sacar los promedios
+                        if (rpm_moto > 4000) & (rpm_moto < 12000):
+                            self.torque_prom4000 = np.append(self.torque_prom4000, torque_moto)
+                            mean_torque = np.mean(self.torque_prom4000)
+                            self.lcdMeanTorque.display(round(mean_torque, 2))
+                            
+                            self.pot_prom4000 = np.append(self.pot_prom4000, horse_power)
+                            mean_pot = np.mean(self.pot_prom4000)
+                            self.lcdMeanHP.display(round(mean_pot, 2))
 
                     if torque_moto > self.max_torque:
                         self.max_torque = torque_moto
+                        
                     if horse_power > self.max_horse_power:
                         self.max_horse_power = horse_power
+                        self.StopLabel.setPixmap(self.led_off_img)
+                    else:
+                        # Si la potencia es menor al maximo, indique
+                        self.StopLabel.setPixmap(self.led_on_img)
 
                     # Cuando se grafica respecto al tiempo
                     elapsed = round((current_time - self.initime), 3)
@@ -426,6 +459,7 @@ class App(QMainWindow, Ui_mainWindow):
 
         # Si no exit var
         else:
+            self.StopLabel.setPixmap(self.led_off_img)
             # self.led_label.setPixmap(self.led_off_img)
             pass
 
@@ -516,16 +550,28 @@ class App(QMainWindow, Ui_mainWindow):
         self.loaded2_torque_data = np.array([0, 0])
         self.loaded2_hp_data = np.array([0, 0])
 
+        # promedios arrays
+        self.torque_prom4000 = np.array([])
+        self.pot_prom4000 = np.array([])
+
         self.max_rpm = 0
         self.max_torque = 0
         self.max_horse_power = 0
         self.reset_flag = True
+        self.stop_count = 0
+
+        # promedios
+        self.mean_torque = 0
+        self.mean_pot = 0
 
         # Los Displays
         self.lcdMaxRPM.display(0)
         self.lcdMaxTorque.display(0)
         self.lcdMaxHP.display(0)
         self.lcdRunTime.display(0)
+        self.lcdMeanTorque.display(0)
+        self.lcdMeanHP.display(0)
+        
         # self.rt_manual.setText("1")
         self.Gauge.update_value(0)
         self.Gaugerpm.update_value(0)
@@ -590,6 +636,7 @@ class App(QMainWindow, Ui_mainWindow):
     def stopFcn(self):
         self.state = False
         self.first_iteration = True
+        # self.close()
 
 
 class DAQ(QThread):
@@ -599,11 +646,12 @@ class DAQ(QThread):
 
         QThread.__init__(self, parent)
 
-        if platform in ["linux", "linux2"]:
+        if platform == "linux" or platform == "linux2":
             ports = list_ports.comports()
 
             if not ports:
-                raise IOError("No pic found - is it plugged in?.")
+                # raise IOError("No pic found - is it plugged in?.")
+                pass
 
             for port in list_ports.comports():
                 if 'FT232R USB UART' in port:
@@ -613,28 +661,54 @@ class DAQ(QThread):
 
 
         elif platform == "win32":
+            locations = ["COM1", 'COM2', 'COM3', 'COM4', 'COM5']
             for port in list_ports.comports():
                 print(port.description)
                 if 'USB Serial Port' in port.description:
                     
                     self.PIC = Serial(port.device, 115200, timeout=1)
                     # self.PIC = Serial("COM7", 115200, timeout=2)
+            """
+            for com in range(10):
+                try:
+                    port = 'COM'.strip() + str(com).strip()
+                    print("Trying...", port)
+                    self.PIC = Serial(port, 115200, timeout=1)
+                    print("ok...", port)
+                    break
+                except:
+                    print("Failed to connect on", port)
+            """
+            # self.PIC = Serial("COM5", 115200, timeout=2)
             
 
     def __del__(self):  # part of the standard format of a QThread
+        # self.wait()
         pass
 
     def run(self):  # also a required QThread function, the working part when called start
+        # i = 500
+        # ini_t = time.time()
         while 1:
+            '''
+            # print(i)
+            if i > 10000:
+                i = 500
+            current = time.time()
+            delta_t = current - ini_t
+            # print(delta_t)
+            if (current - ini_t) > 0.1:
+                self.dataChanged.emit(i)
+                ini_t = time.time()
+                i = i + 1 + np.random.random()*i/1000
+            '''
 
-            self.PIC.flushInput()  #
-            incoming = self.PIC.read(4)  #
-            # print(incoming)
-            incoming = struct.unpack("<hh", incoming)  #
-            pulses = incoming[0]  #
-            wideband = incoming[1]  #
-            #print(pulses, wideband)  #
-            self.dataChanged.emit(pulses, wideband)  #
+            self.PIC.flushInput()
+            incoming = self.PIC.read(4)
+            incoming = struct.unpack("<hh", incoming)
+            pulses = incoming[0]
+            wideband = incoming[1]
+            self.dataChanged.emit(pulses, wideband)
 
 
 

@@ -187,9 +187,9 @@ class AnalogGaugeWidget(QWidget):
         self.change_value_needle_style([QPolygon([
             QPoint(4, 30),
             QPoint(-4, 30),
-            QPoint(-2, - self.widget_diameter / 2 * self.needle_scale_factor),
-            QPoint(0, - self.widget_diameter / 2 * self.needle_scale_factor - 6),
-            QPoint(2, - self.widget_diameter / 2 * self.needle_scale_factor)
+            QPoint(-2, - int(self.widget_diameter / 2 * self.needle_scale_factor)),
+            QPoint(0, - int(self.widget_diameter / 2 * self.needle_scale_factor - 6)),
+            QPoint(2, - int(self.widget_diameter / 2 * self.needle_scale_factor))
         ])])
         # needle = [QPolygon([
         #     QPoint(4, 4),
@@ -459,17 +459,17 @@ class AnalogGaugeWidget(QWidget):
             t = w * i + start - self.angle_offset
             x = outer_radius * math.cos(math.radians(t))
             y = outer_radius * math.sin(math.radians(t))
-            polygon_pie.append(QPointF(x, y))
+            polygon_pie.append(QPointF(int(x), int(y)))
         # create inner circle line from "start + lenght"-angle to "start"-angle
         for i in range(lenght+1):                                              # add the points of polygon
             # print("2 " + str(i))
             t = w * (lenght - i) + start - self.angle_offset
             x = inner_raduis * math.cos(math.radians(t))
             y = inner_raduis * math.sin(math.radians(t))
-            polygon_pie.append(QPointF(x, y))
+            polygon_pie.append(QPointF(int(x), int(y)))
 
         # close outer line
-        polygon_pie.append(QPointF(x, y))
+        polygon_pie.append(QPointF(int(x), int(y)))
         return polygon_pie
 
     def draw_filled_polygon(self, outline_pen_with=0):
@@ -490,7 +490,7 @@ class AnalogGaugeWidget(QWidget):
                 (((self.widget_diameter / 2) - (self.pen.width() / 2)) * self.gauge_color_inner_radius_factor),
                 self.scale_angle_start_value, self.scale_angle_size)
 
-            gauge_rect = QRect(QPoint(0, 0), QSize(self.widget_diameter / 2 - 1, self.widget_diameter - 1))
+            gauge_rect = QRect(QPoint(0, 0), QSize(int(self.widget_diameter / 2 - 1), int(self.widget_diameter - 1)))
             grad = QConicalGradient(QPointF(0, 0), - self.scale_angle_size - self.scale_angle_start_value +
                                     self.angle_offset - 1)
 
@@ -529,7 +529,7 @@ class AnalogGaugeWidget(QWidget):
         scale_line_lenght = (self.widget_diameter / 2) - (self.widget_diameter / 20)
         # print(stepszize)
         for i in range(self.scala_main_count+1):
-            my_painter.drawLine(scale_line_lenght, 0, scale_line_outer_start, 0)
+            my_painter.drawLine(int(scale_line_lenght), 0, int(scale_line_outer_start), 0)
             my_painter.rotate(steps_size)
 
     def create_scale_marker_values_text(self):
@@ -540,7 +540,7 @@ class AnalogGaugeWidget(QWidget):
         # Koordinatenursprung in die Mitte der Flaeche legen
         painter.translate(self.width() / 2, self.height() / 2)
         # painter.save()
-        font = QFont(self.scale_fontname, self.scale_fontsize)
+        font = QFont(self.scale_fontname, int(self.scale_fontsize))
         fm = QFontMetrics(font)
 
         pen_shadow = QPen()
@@ -559,12 +559,12 @@ class AnalogGaugeWidget(QWidget):
             text = str(int(self.value_min + scale_per_div * i))
             w = fm.width(text) + 1
             h = fm.height()
-            painter.setFont(QFont(self.scale_fontname, self.scale_fontsize))
+            painter.setFont(QFont(self.scale_fontname, int(self.scale_fontsize)))
             angle = angle_distance * i + float(self.scale_angle_start_value - self.angle_offset)
             x = text_radius * math.cos(math.radians(angle))
             y = text_radius * math.sin(math.radians(angle))
             # print(w, h, x, y, text)
-            text = [x - int(w/2), y - int(h/2), int(w), int(h), Qt.AlignCenter, text]
+            text = [int(x - int(w/2)), int(y - int(h/2)), int(w), int(h), Qt.AlignCenter, text]
             painter.drawText(text[0], text[1], text[2], text[3], text[4], text[5])
         # painter.restore()
 
@@ -581,8 +581,8 @@ class AnalogGaugeWidget(QWidget):
         steps_size = (float(self.scale_angle_size) / float(self.scala_main_count * self.scala_subdiv_count))
         scale_line_outer_start = self.widget_diameter/2
         scale_line_lenght = (self.widget_diameter / 2) - (self.widget_diameter / 40)
-        for i in range((self.scala_main_count * self.scala_subdiv_count)+1):
-            my_painter.drawLine(scale_line_lenght, 0, scale_line_outer_start, 0)
+        for _ in range((self.scala_main_count * self.scala_subdiv_count)+1):
+            my_painter.drawLine(int(scale_line_lenght), 0, int(scale_line_outer_start), 0)
             my_painter.rotate(steps_size)
 
     def create_values_text(self):
@@ -595,7 +595,7 @@ class AnalogGaugeWidget(QWidget):
         # painter.save()
         # xShadow = 3.0
         # yShadow = 3.0
-        font = QFont(self.value_fontname, self.value_fontsize)
+        font = QFont(self.value_fontname, int(self.value_fontsize))
         fm = QFontMetrics(font)
 
         pen_shadow = QPen()
@@ -610,7 +610,7 @@ class AnalogGaugeWidget(QWidget):
         text = str(int(self.value))
         w = fm.width(text) + 1
         h = fm.height()
-        painter.setFont(QFont(self.value_fontname, self.value_fontsize))
+        painter.setFont(QFont(self.value_fontname, int(self.value_fontsize)))
 
         # Mitte zwischen Skalenstart und Skalenende:
         # Skalenende = Skalenanfang - 360 + Skalenlaenge
@@ -621,7 +621,7 @@ class AnalogGaugeWidget(QWidget):
         x = text_radius * math.cos(math.radians(angle))
         y = text_radius * math.sin(math.radians(angle))
         # print(w, h, x, y, text)
-        text = [x - int(w/2), y - int(h/2), int(w), int(h), Qt.AlignCenter, text]
+        text = [int(x - int(w/2)), int(y - int(h/2)), int(w), int(h), Qt.AlignCenter, text]
         painter.drawText(text[0], text[1], text[2], text[3], text[4], text[5])
         # painter.restore()
 
@@ -829,11 +829,11 @@ if __name__ == '__main__':
             self.my_gauge.widget.scala_main_count = 11
             self.my_gauge.ActualSlider.setMaximum(self.my_gauge.widget.value_max)
             self.my_gauge.ActualSlider.setMinimum(self.my_gauge.widget.value_min)
-            self.my_gauge.AussenRadiusSlider.setValue(self.my_gauge.widget.gauge_color_outer_radius_factor * 1000)
-            self.my_gauge.InnenRadiusSlider.setValue(self.my_gauge.widget.gauge_color_inner_radius_factor * 1000)
+            self.my_gauge.AussenRadiusSlider.setValue(int(self.my_gauge.widget.gauge_color_outer_radius_factor * 1000))
+            self.my_gauge.InnenRadiusSlider.setValue(int(self.my_gauge.widget.gauge_color_inner_radius_factor * 1000))
 
-            self.my_gauge.GaugeStartSlider.setValue(self.my_gauge.widget.scale_angle_start_value)
-            self.my_gauge.GaugeSizeSlider.setValue(self.my_gauge.widget.scale_angle_size)
+            self.my_gauge.GaugeStartSlider.setValue(int(self.my_gauge.widget.scale_angle_start_value))
+            self.my_gauge.GaugeSizeSlider.setValue(int(self.my_gauge.widget.scale_angle_size))
 
             # set Start Value
             # self.my_gauge.widget.update_value(self.my_gauge.widget.value_min)

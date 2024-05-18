@@ -3,5 +3,5 @@ Name=Dyna
 Exec=/home/casaracing/PycharmProjects/Dyna/venv/bin/python /home/casaracing/PycharmProjects/Dyna/MainGUI.py
 Terminal=true
 Type=Application
-Icon=/home/casaracing/PycharmProjects/Dyna/img/AnalogGaugeWidgetDemo.png
+Icon=C:\Users\casa racing\Documents\dyna\Dyna-master\img\AnalogGaugeWidgetDemo.png
 Name[es]=Dyna
