@@ -107,7 +107,7 @@ class App(QMainWindow, Ui_mainWindow):
         self.mean_pot = 0
 
         # Leds
-        self.path = "C:/Users/casa racing/Documents/dyna/Dyna-master\dist"
+        self.path = "C:/Users/usuario/Documents/dyna-prod/dist"
         print(self.path)
         led_off = self.path + "/img/led_off.png"
         led_on = self.path + "/img/led_on.png"
@@ -477,13 +477,18 @@ class App(QMainWindow, Ui_mainWindow):
         print(fname[0])
         if not fname == '':
             df = pd.read_csv(fname[0])
-            print(len(self.loaded_RPM_data))
             if len(self.loaded_RPM_data) == 2:
                 self.loaded_RPM_data = df['RPM'].to_numpy()
                 self.loaded_hp_data = df['Hp'].to_numpy()
                 self.loaded_torque_data = df['Nm'].to_numpy()
+                        
                 self.loaded_torque.setData(self.loaded_RPM_data, self.loaded_torque_data)
                 self.loaded_hp.setData(self.loaded_RPM_data, self.loaded_hp_data)
+
+                self.lcdMaxRPM.display(round(np.max(self.loaded_RPM_data), 2))
+                self.lcdMaxTorque.display(round(np.max(self.loaded_torque_data), 2))
+                self.lcdMaxHP.display(round(np.max(self.loaded_hp_data), 2))
+                
                 try:
                     self.loaded_afr_data = df['afr'].to_numpy()
                     self.loaded_wideband.setData(self.loaded_RPM_data, self.loaded_afr_data)
@@ -504,9 +509,13 @@ class App(QMainWindow, Ui_mainWindow):
 
 
             self.updateViews()
-            self.lcdMaxRPM.display(round(np.max(self.plot_rpm), 0))
-            self.lcdMaxTorque.display(round(np.max(self.plot_torque_vs_rpm), 2))
-            self.lcdMaxHP.display(round(np.max(self.plot_hp_vs_rpm), 2))
+            max_rpm = int(round(np.max(self.plot_rpm), 0))
+            # If there's a current plot, use it
+            if max_rpm:
+                print("Max rpm: ", max_rpm)
+                self.lcdMaxRPM.display(str(max_rpm))
+                self.lcdMaxTorque.display(round(np.max(self.plot_torque_vs_rpm), 2))
+                self.lcdMaxHP.display(round(np.max(self.plot_hp_vs_rpm), 2))
 
     def shoot(self):
         # Tome un pantallaso
