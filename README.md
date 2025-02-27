@@ -18,3 +18,7 @@
 ## Parameters
 - Just run MainGUI.py
 ![AnalogGaugeWidgetDemo Image](img/Example_without_needle.JPG?raw=true "Add custom widget")
+
+
+## Re-calculo de inercia para el nuevo rodillo
+![alt text](image.png)

@@ -257,9 +257,9 @@ class App(QMainWindow, Ui_mainWindow):
         afr = 0.0116 * wideband + 7.31
         self.lcdAFR.display(afr)
         current_time = time.time()
-        rpm_rod = pulsos * 0.3  # (n_pulsos / 0.2 sec)  * (1 rev / 1000 pulsos) * (60 sec / 1 min)  = 0.3 * pulsos
-        hz_rod_temp = (rpm_rod * 2 * math.pi) / 60
-        # hz_rod_temp = rpm_rod * 0.0166
+        rpm_rod = pulsos * 0.3  # (n_pulsos / 0.2 sec)  * (1 rev / 1000 pulsos) * (60 sec / 1 min)  = 0.3 * pulsos. 
+        # hz_rod_temp = (rpm_rod * math.pi) / 30 # (rpm_rod * 2 * math.pi) / 60
+        hz_rod_temp = rpm_rod * 0.010610329
 
         if self.setting_flag:
             # Se calcula la relacion de reducción
@@ -311,7 +311,7 @@ class App(QMainWindow, Ui_mainWindow):
         rpm_moto = (hz_rod * 60 / (self.relacion_reduccion * 2 * math.pi))
         self.Gaugerpm.update_value(rpm_moto)
         # self.rt_manual.setText(str(self.relacion_reduccion))
-        kmh = (hz_rod * 0.54864)  # 0.1524)*3.6  # Multiplicando por el radio del rodillo en m
+        kmh = (hz_rod * 0.54)  # 0.1524)*3.6  # Multiplicando por el radio del rodillo en m
 
         self.Gauge.update_value(kmh)
         # print("{:12.2f}".format(rpm_rod,"rpm"))
@@ -334,10 +334,9 @@ class App(QMainWindow, Ui_mainWindow):
 
             else:
                 # Calculos
-                disc_inertia = 0.6243
-                inertia_total = disc_inertia + 3.87 # Kg * m2
                 delta_w = hz_rod - self.old_hz
                 acc = delta_w / self.delta_t
+                inertia_total = 3.15882
                 # Se calcula el torque en el rodillo con sumatoria de torques
                 '''
                 roller_load = (80 + 100) * 9.81  # Equivalent Load on the bearing
@@ -350,7 +349,8 @@ class App(QMainWindow, Ui_mainWindow):
                 chain_friction = 0.02 * disc_inertia * 1000 * 4 * acc  # aprox 50 * acc 2 % of transmission loss
                 '''
                 chain_friction = 50 * acc  # 2 % of transmission loss
-                torque_rod_temp = (inertia_total * 1000 * acc) + chain_friction + 0.0662  # + fr_bearings Nm
+                # torque_rod_temp = (inertia_total * 1000 * acc) + chain_friction + 0.0662  # + fr_bearings Nm
+                torque_rod_temp = (3158 * acc) + chain_friction + 0.0662  # + fr_bearings Nm
 
                 # fir filter
                 torque_rod = torque_rod_temp * 0.8 + self.old_torque_rod * 0.1 + self.old_torque_rod2 * 0.1
